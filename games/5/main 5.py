@@ -10,7 +10,6 @@ def toStr(num):
         return str(num)
 
 def draw():
-
     print('   X ', end='')
     for i in range(len(b[0])):
         print((i + 1), '', end='')
@@ -155,4 +154,4 @@ if __name__ == '__main__':
         except ValueError:
             print("Координаты должны быть двумя числами!")
         except KeyboardInterrupt:
-            validate()
+            pass

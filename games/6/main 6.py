@@ -160,4 +160,4 @@ if __name__ == '__main__':
         except ValueError:
             print("Координаты должны быть двумя числами!")
         except KeyboardInterrupt:
-            validate()
+            pass
