@@ -145,9 +145,22 @@ def getNumPartWhole(s):
     return p1
 
 
+def getUsualFraction(s):
+    usualFractionParts = s.split(' разделить на ')
+    if len(usualFractionParts) == 2:
+        numerator = getBasicNumber(usualFractionParts[0])
+        denominator = getBasicNumber(usualFractionParts[1])
+        if not numerator or not denominator:
+            return None
+        return round(numerator / denominator, 3)
+
 def getNumPartFraction(s):
     m = re.fullmatch(patternNumberFullFraction, s)
-    if m:
+    usualFr = getUsualFraction(s)
+
+    if usualFr:
+        return usualFr
+    elif m:
         hundredths = 0
         thousandths = 0
         millionths = 0
@@ -195,6 +208,11 @@ def getNumber(s):
 
     p = s.split(' и ')
 
+    if len(p) < 2:
+        usualFr = getUsualFraction(s)
+        if usualFr:
+            return usualFr
+
     if len(p) == 0:
         print('Неверный формат числа: "' + s + '"')
         return None
@@ -218,6 +236,7 @@ def getNumber(s):
 
 
 def reverseGetNumber(n):
+    # print('Original:', '{0:.3f}'.format(n))
     if n == 0:
         return 'ноль'
     s = ''
@@ -225,7 +244,22 @@ def reverseGetNumber(n):
         s += "минус "
         n *= -1
 
+    per = ''
+    decimal_part = ''
     fr = n - int(n)
+
+    if '.' in str(n):
+        decimal_part, per = reverseGetNumPartPeriodic(fr)
+        # print('per, decimalPart:', per, decimal_part)
+        # if per:
+            # decimal_part = str(fr).split('.')[1]
+            # print('old fr: ', fr, ', dec part: ', decimal_part, sep='')
+            # fr = float('0.' + decimal_part[len(per[0]):])
+            # print('fr: ', fr, ', per: ', per[0], 'per i: ', per[1], sep='')
+            # fr = decimal_part
+
+    n = int(n)
+
     if n >= 1000000:
         amount = int(n // 1000000)
         s += reverseGetNumber(amount).strip() + ' миллион'
@@ -352,8 +386,14 @@ def reverseGetNumber(n):
 
     if fr == 0:
         return s
-    frOrig = fr
 
+    if per:
+        frOrig = float('0.' + decimal_part)
+    else:
+        frOrig = fr
+
+    hasDecimalPart = False
+    fr = frOrig
     fr *= 100
     if int(fr) != 0 and int(fr) * 10 == int(frOrig * 1000):
         s += ' и' + reverseGetNumber(int(fr)).strip() + ' сот'
@@ -364,11 +404,12 @@ def reverseGetNumber(n):
             s += 'ые'
         else:
             s += 'ых'
-        return s
+        hasDecimalPart = True
 
     fr = frOrig
     fr *= 1000
-    if int(fr) != 0:
+    # print('not hasDecimalPart: ', not hasDecimalPart, ', fr: ', fr, ', int(fr) != 0:, ', int(fr) != 0, sep='')
+    if not hasDecimalPart and int(fr) != 0:
         s += 'и ' + reverseGetNumber(int(fr)).strip() + ' тысячн'
         a = int(fr)
         if a % 10 == 1:
@@ -377,12 +418,60 @@ def reverseGetNumber(n):
             s += 'ые'
         else:
             s += 'ых'
-        return s
+        hasDecimalPart = True
+
+    if per:
+        s += ' и ' + reverseGetNumber(int(per.strip())).strip() + ' в периоде'
 
     return s
+
+def reverseGetNumPartPeriodic(num):
+    s = str(num)
+    fullDec = s[:-1].split('.')[1]
+    # print(fullDec)
+    for i in range(len(s)-1):
+        decimal = fullDec[i:]
+        res = reverseGetNumPartPeriodicPart(decimal)
+        if res[0]:
+            return res
+    return '', ''
+
+def reverseGetNumPartPeriodicPart(decimal):
+    # print(decimal)
+    fl = len(decimal) - 1
+    localDebug = False
+    # if not debug:
+    #     localDebug = False
+    if localDebug:
+        print(decimal)
+    for i in range(0, fl):
+        for l in range(1, fl - i + 1):
+            span = decimal[i:i + l]
+            goodSpan = True
+            if localDebug:
+                print('| ', i, ' ', l, ' span: "', span, '"', sep='')
+            c = 0
+            for k in range(i+l, fl, l):
+                searchIn = decimal[i + k:fl]
+                if len(searchIn) == 0:
+                    # goodSpan = False
+                    continue
+                c += 1
+                if localDebug:
+                    print(k, ' "', searchIn, '"', sep='')
+                sharedSize = min(len(searchIn), len(span))
+                if not searchIn[:sharedSize].startswith(span[:sharedSize]):
+                    goodSpan = False
+                    break
+            if goodSpan and c != 0:
+                return decimal[:i], span
+    return '', ''
+
+
 def getOperation(s):
     m = re.fullmatch(patternOperation, s)
     if not m:
+        print('Неверный формат операций: "' + s + '"')
         return None
     num1 = getNumber(m.group(1))
     num2 = getNumber(m.group(3))
@@ -403,11 +492,12 @@ def getOperation(s):
 
 
 # Примеры:
+#
 # минус два минус минус пять
+# сорок один и тридцать одна сотая разделить на двести сорок семь миллионных
+# сорок один плюс восемьдесят восемь разделить на девять
 
-s = 'сорок один и тридцать одна сотая разделить на двести сорок семь миллионных'
+s = 'сорок один плюс восемьдесят восемь разделить на девять'
 result = getOperation(s)
-if not result:
-    print('Неверный формат операций: "' + s + '"')
-else:
+if result:
     print('Результат:', reverseGetNumber(result))
