@@ -2,7 +2,7 @@
 
 import re
 
-patternOperation = r'(.*)\s(плюс|минус|умножить\sна|разделить\sна)\s(.*)'
+patternOperation = r'(.*?)\s(плюс|минус|умножить\sна|разделить\sна)\s(.*)'
 patternNumberFullFraction = r'((.+?)\sсот(ая|ые|ых))?(\s?(.+?)\sтысячн(ая|ые|ых))?(\s?(.+?)\sмиллионн(ая|ые|ых))?'
 
 debug = False
@@ -188,6 +188,10 @@ def getNumber(s):
     # maybeOperation = getOperation(s)
     # if maybeOperation:
     #     return maybeOperation
+    sign = 1
+    if s.startswith('минус '):
+        sign = -1
+        s = s[6:]
 
     p = s.split(' и ')
 
@@ -195,16 +199,17 @@ def getNumber(s):
         print('Неверный формат числа: "' + s + '"')
         return None
     if len(p) == 1:
-        if 'сотых' in p[0] or 'сотые' in p[0] or 'сотая' in p[0] or 'тысячных' in p[0] or 'тысячные' in p[
-            0] or 'тысячная' in p[0] or 'миллионных' in p[0] or 'миллионные' in p[0] or 'миллионная' in p[0]:
-            return getNumPartFraction(p[0])
+        if 'сотых' in p[0] or 'сотые' in p[0] or 'сотая' in p[0] or 'тысячных' in p[0] or 'тысячные' in p[0] or 'тысячная' in p[0] or 'миллионных' in p[0] or 'миллионные' in p[0] or 'миллионная' in p[0]:
+            a = getNumPartFraction(p[0])
+            return sign * a if a else None
         else:
-            return getNumPartWhole(p[0])
+            a = getNumPartWhole(p[0])
+            return sign * a if a else None
     elif len(p) == 2:
         p1 = getNumPartWhole(p[0])
         p2 = getNumPartFraction(p[1])
         if p1 and p2:
-            return p1 + p2
+            return sign * (p1 + p2)
         else:
             return None
     else:
@@ -215,9 +220,12 @@ def getNumber(s):
 def reverseGetNumber(n):
     if n == 0:
         return 'ноль'
+    s = ''
+    if n < 0:
+        s += "минус "
+        n *= -1
 
     fr = n - int(n)
-    s = ''
     if n >= 1000000:
         amount = int(n // 1000000)
         s += reverseGetNumber(amount).strip() + ' миллион'
@@ -393,6 +401,9 @@ def getOperation(s):
         print('Неизвестная операция: "' + operation + '"')
         return None
 
+
+# Примеры:
+# минус два минус минус пять
 
 s = 'сорок один и тридцать одна сотая разделить на двести сорок семь миллионных'
 result = getOperation(s)
