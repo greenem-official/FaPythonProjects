@@ -4,12 +4,14 @@ import re
 
 patternOperation = r'(.*)(\()((.*?)\s(\+-\*/)\s(.*))(\))(.*)'
 simplePatternOperation = r'(.*?)\s(\+-\*/)\s(.*)'
-patternLeftBrackets = r'(\((.*)\))\s*([\+\-\*\/])\s*([^\(\)]*)' # 2 brackets content, 3 operation, 4 right operand
-patternRightBrackets = r'([^\(\)]*)\s*([\+\-\*\/])\s*(\((.*)\))' # 1 left operand, 2 operation, 4 brackets content
+patternLeftBrackets = r'(\((.*)\))\s*([\+\-\*\/])\s*([^\(\)]*)'  # 2 brackets content, 3 operation, 4 right operand
+patternRightBrackets = r'([^\(\)]*)\s*([\+\-\*\/])\s*(\((.*)\))'  # 1 left operand, 2 operation, 4 brackets content
+patternJustTwoNumbers = r'([^\(\)]*)\s*([\+\-\*\/])\s*([^\(\)]*)'  # 1 left operand, 2 operation, 3 right operand
+numbersPattern = r'([\(\)\+\-\*\/\s]*\s*)?([^\(\)\+\-\*\/]+)(\s*[\(\)\+\-\*\/\s]*)?'
 
 debug = False
 
-def getNumHundreds(raw):
+def _getNumHundreds(raw):
     if not raw:
         return 0
     raw = raw.strip()
@@ -35,7 +37,7 @@ def getNumHundreds(raw):
 
     return None, 'Неверный формат сотен: "' + raw + '"'
 
-def getNumTens(raw):
+def _getNumTens(raw):
     if not raw:
         return 0
     raw = raw.strip()
@@ -59,7 +61,7 @@ def getNumTens(raw):
 
     return None, 'Неверный формат десятков: "' + raw + '"'
 
-def getNumOnes(raw):
+def _getNumOnes(raw):
     if not raw:
         return 0
     raw = raw.strip()
@@ -105,7 +107,9 @@ def getNumOnes(raw):
 
     return None, 'Неверный формат единиц: "' + raw + '"'
 
-def getBasicNumber(s):
+def _getBasicNumber(s):
+    s = s.strip()
+
     hundreds = 0
     tens = 0
     ones = 0
@@ -115,28 +119,39 @@ def getBasicNumber(s):
         print('Встречено "пустое" число!')
         return None, None
     if len(p) >= 1:
-        ones, err1 = getNumOnes(p[len(p) - 1])
+        ones, err1 = _getNumOnes(p[len(p) - 1])
         if not ones:
-            return None, err1
+            ones = 0
+            tens, err2 = _getNumTens(p[len(p) - 1])
+            if not tens:
+                hundreds, err3 = _getNumHundreds(p[len(p) - 1])
+                if not hundreds:
+                    return None, err1
     if len(p) >= 2:
-        tens, err2 = getNumTens(p[len(p) - 2])
+        tens, err2 = _getNumTens(p[len(p) - 2])
         if not tens:
-            return None, err2
+            tens = 0
+            hundreds, err3 = _getNumHundreds(p[len(p) - 2])
+            if not hundreds:
+                return None, err2
     if len(p) >= 3:
-        hundreds, err3 = getNumHundreds(p[len(p) - 3])
+        hundreds, err3 = _getNumHundreds(p[len(p) - 3])
         if not hundreds:
             return None, err3
 
     return hundreds + tens + ones, None
 
 def getNumPartWhole(s):
-    p1, err = getBasicNumber(s)
+    s = str(s).strip()
+    p1, err = _getBasicNumber(s)
     if not p1:
         return None, 'Неверное число: "' + s + '": ' + err
 
     return p1, None
 
 def getNumber(s):
+    if debug:
+        print('number', s)
     # maybeOperation, err1 = getOperation(s, sOrig)
     # print(maybeOperation, err1)
     # if maybeOperation:
@@ -289,6 +304,24 @@ def reverseGetNumber(n):
 
     return s
 
+def surroundAll(s, obj):
+    c = 0
+    m = 1
+    amount = 0
+    for m in re.finditer(obj, s):
+        amount += 1
+    for i in range(amount):
+        cc = 0
+        for m in re.finditer(obj, s):
+            if cc == c:
+                if debug:
+                    print('doing ' + obj + ' on ' + str(cc))
+                s = surroundOperation(s, m.start())
+            cc += 1
+        c += 1
+
+    return s
+
 def performEverything(s):
     sOrig = s
     s = s.replace('скобка открывается', '(')
@@ -299,24 +332,32 @@ def performEverything(s):
     s = s.replace('умножить на', '*')
     s = s.replace('разделить на', '/')
 
-    for m in re.finditer('\*', s):
-        s = surroundOperation(s, m.start())
-    for m in re.finditer('/', s):
-        s = surroundOperation(s, m.start())
-    for m in re.finditer('\+', s):
-        s = surroundOperation(s, m.start())
-    for m in re.finditer('\-', s):
-        s = surroundOperation(s, m.start())
+    s = surroundAll(s, r'\*')
+    s = surroundAll(s, r'/')
+    s = surroundAll(s, r'\+')
+    s = surroundAll(s, r'-')
 
+    # for m in re.finditer('/', s):
+    #     s = surroundOperation(s, m.start())
+    # for m in re.finditer('\+', s):
+    #     s = surroundOperation(s, m.start())
+    # for m in re.finditer('-', s):
+    #     s = surroundOperation(s, m.start())
+
+    # for m in re.finditer(numbersPattern, s):
+    #     orig = m.group(2).strip()
+    #     s = s.replace(orig, "( " + orig + " )", 1)
+    if debug:
+        print(s)
     return getOperation(s, sOrig)
     # return s, None
 
 def getOperation(s, sOrig):
-    print(s)
+    # print('operation', s)
     s = s.strip()
     while s.startswith('(') and s.endswith(')'):
         s = s[1:len(s)-1].strip()
-        print(s)
+        # print(s)
 
     bc1 = s.count('(')
     bc2 = s.count(')')
@@ -325,23 +366,56 @@ def getOperation(s, sOrig):
     if bc2 > bc1:
         return None, 'Лишняя открывающая скобка: ' + sOrig
 
-    nb, err = getNumber(s)
+    number, err = getNumber(s)
+    # print('aaaaa', err)
     if not err:
-        return nb, err
+        return number, err
 
+    noBrackets = False
+    bracketsContent = None
+    bracketsContentNumber = None
+    usualOrder = True
     m = re.fullmatch(patternLeftBrackets, s)
     if m:
         bracketsContent = m.group(2)
+        bracketsContentNumber, err = getOperation(bracketsContent, sOrig)
+        if err:
+            return None, err
         operation = m.group(3)
         operand = m.group(4)
+        number1, err = getNumber(operand)
+        if err:
+            return None, err
+
+        t = number1
+        number1 = bracketsContentNumber
+        bracketsContentNumber = t
     else:
         m = re.fullmatch(patternRightBrackets, s)
         if m:
             bracketsContent = m.group(4)
+            bracketsContentNumber, err = getOperation(bracketsContent, sOrig)
+            if err:
+                return None, err
             operation = m.group(2)
             operand = m.group(1)
+            number1, err = getNumber(operand)
+            if err:
+                return None, err
         else:
-            return None, 'Некорретный формат операции: ' + s
+            m = re.fullmatch(patternJustTwoNumbers, s)
+            if m:
+                operand = m.group(1)
+                number1, err = getNumber(operand)
+                if err:
+                    return None, err
+
+                operation = m.group(2)
+                bracketsContentNumber, err = getNumber(m.group(3))
+                if err:
+                    return None, err
+            else:
+                return None, 'Некорретный формат операции: ' + s
 
     # print(s)
     # print(s.find('('))
@@ -352,58 +426,23 @@ def getOperation(s, sOrig):
     # print("'" + s[s.rfind(')') + 1 : len(s)].strip() + "'")
     ## s[s.find('(') + 1:s.rfind(')')].strip()
 
-    number1, err = getNumber(operand)
-    if err:
-        return None, err
 
-    bracketsContentNumber, err = getOperation(bracketsContent, sOrig)
-    if err:
-        return None, err
+    if debug:
+        print(number1, operation, + bracketsContentNumber)
+
 
     if operation == '+':
-        return number1 + bracketsContentNumber
+        return number1 + bracketsContentNumber, None
     elif operation == '-':
-        return number1 - bracketsContentNumber
+        return number1 - bracketsContentNumber, None
     elif operation == '*':
-        return number1 * bracketsContentNumber
+        return number1 * bracketsContentNumber, None
     elif operation == '/':
-        return number1 / bracketsContentNumber
+        return round(number1 / bracketsContentNumber, 3), None
+    elif operation == '^' or operation == '**':
+        return number1 ** bracketsContentNumber, None
     else:
         return None, 'Неизвестная операция: ' + s
-
-    m = re.fullmatch(patternOperation, s)
-    print('m first: ', m)
-    if not m:
-        m = re.fullmatch(simplePatternOperation, s)
-        if not m:
-            return None, 'Неверный формат операций: "' + s + '"'
-    else:
-        m = re.fullmatch(simplePatternOperation, m.group(3))
-        if not m:
-            return None, 'Неверный формат операций2: "' + s + '"'
-
-    print('1, ', m.group(1))
-    print('3, ', m.group(3))
-    num1, err1 = getNumber(m.group(1))
-    num2, err2 = getNumber(m.group(3))
-    print('num 1', num1)
-    print('num 2', num2)
-    if not num1 or not num2:
-        err = err1
-        if not err:
-            err = err2
-        return None, err
-    operation = m.group(2)
-    if operation == 'плюс':
-        return num1 + num2, None
-    elif operation == 'минус':
-        return num1 - num2, None
-    elif operation == 'умножить на':
-        return num1 * num2, None
-    elif operation == 'разделить на':
-        return round(num1 / num2, 3), None
-    else:
-        return None, 'Неизвестная операция: "' + operation + '"'
 
 def _surroundLeft(s, start, agressive=False):
     bc1 = 0
@@ -418,7 +457,9 @@ def _surroundLeft(s, start, agressive=False):
             elif a == '(':
                 bc2 += 1
                 if bc1 == 0:
-                    return s, b, True
+                    s = s[0: i + 1] + " (" + s[i + 1: len(s)]
+                    b = True
+                    return s, b, False
             if a in '+-*/' or a == '(':
                 if bc1 == bc2:
                     s = s[0: i + 1] + " (" + s[i + 1: len(s)]
@@ -429,7 +470,7 @@ def _surroundLeft(s, start, agressive=False):
                     s = s[0: i + 1] + " (" + s[i + 1: len(s)]
                     b = True
                     break
-    if not b and agressive:
+    if not b:
         s = '( ' + s
         b = True
     return s, b, False
@@ -449,7 +490,12 @@ def _surroundRight(s, start, agressive=False):
                 bc2 += 1
                 # print(bc1)
                 if bc1 == 0:
-                    return s, b, True
+                    # if agressive:
+                        s = s[0: i] + ") " + s[i: len(s)]
+                        b = True
+                        return s, b, False
+                    # else:
+                    #     return s, b, True
             if a in '+-*/' or a == ')':
                 if bc1 == bc2:
                     s = s[0: i] + ") " + s[i: len(s)]
@@ -460,41 +506,47 @@ def _surroundRight(s, start, agressive=False):
                     s = s[0: i] + ") " + s[i: len(s)]
                     b = True
                     break
-    if not b and agressive:
+    if not b: # and agressive
         s = s + ' )'
         b = True
     return s, b, False
 
 def surroundOperation(s, start):
-    # print(s)
+    if debug:
+        print('orig: ', s)
     # print(s[start-5:start+5])
     s, b1, stop1 = _surroundLeft(s, start)
-    # print(s)
-    # if stop1:
-    #     return s
+    if debug:
+        print('left: ', s)
+    if stop1:
+        print('stop')
+        return s
     s, b2, stop2 = _surroundRight(s, start)
-    # print(s)
+    if debug:
+        print('right:', s)
 
-    # print(b1, b2, stop1, stop2)
-    # if stop1 or stop2:
-    #     return s
-    if b1 and not b2:
-        s, ba2, stop1_2 = _surroundRight(s, start, agressive=True)
-        # print(s)
-    if b2 and not b1:
-        s, ba1, stop2_2 = _surroundLeft(s, start, agressive=True)
-        # print(s)
+    if debug:
+        print(b1, b2, stop1, stop2)
+    if stop1 or stop2:
+        return s
+    # if b1 and not b2:
+    #     s, ba2, stop1_2 = _surroundRight(s, start, agressive=True)
+    #     print(s)
+    # if b2 and not b1:
+    #     s, ba1, stop2_2 = _surroundLeft(s, start, agressive=True)
+    #     print(s)
 
-    # print()
+    if debug:
+        print()
     return s.strip()
 
 # s = "два + сто * ( ( пять + два ) + четыре ) * три - один"
 
 # counter = 0
-# s = "два + ( ( сорок + три ) + два ) * три - один"
-# for i in re.finditer('-', s):
+# s = "два + ( ( сорок + ( три * один ) + два - девять ) * три - один - семь"
+# for i in re.finditer('\*', s):
 #     counter += 1
-#     if counter == 1:
+#     if counter == 2:
 #         print(surroundOperation(s, i.start()))
 #         break
 
@@ -503,11 +555,12 @@ def surroundOperation(s, start):
 #
 # скобка открывается пять плюс два скобка закрывается умножить на три минус один
 # два плюс скобка открывается скобка открывается сорок плюс три скобка закрывается плюс два скобка закрывается умножить на три минус один
+# два плюс (три + пять)
 
-s = 'два плюс (три + пять)'
+s = 'два плюс скобка открывается скобка открывается сорок плюс три умножить на один скобка закрывается плюс два минус девять скобка закрывается умножить на три минус один минус семь'
 result, err = performEverything(s)
 if result:
-    # print('Результат:', reverseGetNumber(result))
-    print('Результат (тест):\n' + result)
+    print('Результат:')
+    print(reverseGetNumber(result))
 else:
     print(err)
