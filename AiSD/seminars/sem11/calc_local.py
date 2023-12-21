@@ -469,26 +469,29 @@ def reverseGetNumPartPeriodicPart(decimal):
 
 
 def getOperation(s):
+    s = s.replace('+', 'плюс')
+    s = s.replace('-', 'минус')
+    s = s.replace('*', 'умножить на')
+    s = s.replace('/', 'разделить на')
+
     m = re.fullmatch(patternOperation, s)
     if not m:
-        print('Неверный формат операций: "' + s + '"')
-        return None
+        return None, 'Неверный формат операций: "' + s + '"'
     num1 = getNumber(m.group(1))
     num2 = getNumber(m.group(3))
     if not num1 or not num2:
-        return None
+        return None, None
     operation = m.group(2)
     if operation == 'плюс':
-        return num1 + num2
+        return num1 + num2, None
     elif operation == 'минус':
-        return num1 - num2
+        return num1 - num2, None
     elif operation == 'умножить на':
-        return num1 * num2
+        return num1 * num2, None
     elif operation == 'разделить на':
-        return round(num1 / num2, 3)
+        return round(num1 / num2, 3), None
     else:
-        print('Неизвестная операция: "' + operation + '"')
-        return None
+        return None, 'Неизвестная операция: "' + operation + '"'
 
 
 # Примеры:
@@ -499,6 +502,8 @@ def getOperation(s):
 
 if __name__ == "__main__":
     s = 'сорок один плюс восемьдесят восемь разделить на девять'
-    result = getOperation(s)
+    result, err = getOperation(s)
     if result:
         print('Результат:', reverseGetNumber(result))
+    elif err:
+        print(err)

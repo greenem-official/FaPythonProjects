@@ -333,4 +333,4 @@ if __name__ == "__main__":
     else:
         print(err)
 
-# print(getNumber('сорок'))
+    # print(getNumber('сорок'))
