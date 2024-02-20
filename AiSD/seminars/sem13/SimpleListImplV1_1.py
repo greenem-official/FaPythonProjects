@@ -61,6 +61,30 @@ class SimpleList:
                 i += 1
             return i
 
+    def remove(self, index):
+        if not self.firstEl:
+            raise KeyError('Список пуст!')
+        elif index == 0:
+            if self.firstEl:
+                self.firstEl = self.firstEl.nextEl
+        else:
+            node = self.firstEl
+            i = 0
+            while node.nextEl and i < index - 1:
+                node = node.nextEl
+                i += 1
+            if i == index - 1:
+                if node.nextEl and node.nextEl.nextEl:
+                    node.nextEl = node.nextEl.nextEl
+
+    def __removeSingle(self, el: SimpleListNode):
+        toRemove = el.nextEl
+        nextAfterIt = None
+        if toRemove:
+            nextAfterIt = toRemove.nextEl
+            toRemove.nextEl = None
+        el.nextEl = nextAfterIt
+
     def __str__(self):
         s = None
         node = self.firstEl
