@@ -18,7 +18,7 @@ class SimpleList:
                 node = node.nextEl
             node.nextEl = SimpleListNode(value)
 
-    def setAt(self, value, index):
+    def set(self, value, index):
         if not self.firstEl or index == 0:
             newNode = SimpleListNode(value)
             if self.firstEl:
