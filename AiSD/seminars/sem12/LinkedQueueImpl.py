@@ -1,4 +1,4 @@
-class LinkedListNode:
+class LinkedQueueNode:
     value: any
     nextEl = None
 
@@ -15,46 +15,35 @@ class LinkedListNode:
         return self.value
 
 
-class LinkedList:
+class LinkedQueue:
     firstEl = None
 
-    def add(self, value):
+    def append(self, value):
         if not self.firstEl:
-            self.firstEl = LinkedListNode(value)
+            self.firstEl = LinkedQueueNode(value)
         else:
             node = self.firstEl
             while node.getNext():
                 node = node.getNext()
-            node.setNext(LinkedListNode(value))
+            node.setNext(LinkedQueueNode(value))
 
-    def remove(self, value):
+    def pop(self):
         if not self.firstEl:
-            raise ValueError('Список пуст')
-        else:
-            if self.firstEl.getValue() == value:
-                self.__removeSingle(self.firstEl)
-                self.firstEl = None
-                return
-            node = self.firstEl
-            while node.getNext():
-                if node.getNext().getValue() == value:
-                    self.__removeSingle(node)
-                    return
-        raise ValueError('Нет такого элемента')
+            return None
+        node = self.firstEl
+        while node.getNext() and node.getNext().getNext():
+            node = node.getNext()
+        res = node.getNext()
+        node.setNext(None)
+        return res.getValue()
 
-    def __removeSince(self, el: LinkedListNode):
-        if not el:
-            return
-        self.__removeSince(el.getNext())
-        el.setNext(None)
-
-    def __removeSingle(self, el: LinkedListNode):
-        toRemove = el.getNext()
-        nextAfterIt = None
-        if toRemove:
-            nextAfterIt = toRemove.getNext()
-            toRemove.setNext(None)
-        el.setNext(nextAfterIt)
+    def get(self):
+        if not self.firstEl:
+            return None
+        node = self.firstEl
+        while node.getNext():
+            node = node.getNext()
+        return node.getValue()
 
     def find(self, value):
         if not self.firstEl:
