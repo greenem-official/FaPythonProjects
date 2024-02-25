@@ -42,72 +42,82 @@ def checkCommand(s: str, pl):
     return False, 0, None
 
 if __name__ == '__main__':
-    while True:
-        if not samePlayer:
-            player += 1
-        if player >= 3:
-            player = 1
-        samePlayer = False
-
-        if not noDraw:
-            c.drawBoard()
-            dangered = c.findAllCellsInDanger(c.board, player)
-            # print(dangered)
-            if len(dangered) != 0:
-                print('Фигуры под ударом:')
-                for d in dangered:
-                    print(str(d[0]) + " " + str(d[1]) + " (" + c.board[d[0]][d[1]].figure + ")")
-        noDraw = False
-
-        firstInput = input('Ход №' + str(c.currentMoveNumber) + ', игрок ' + str(player) + ':\nИсходная точка: ')
-        foundCommand, errCode, checkCommandMessage = checkCommand(firstInput, player)
-        # print(foundCommand, errCode, checkCommandMessage)
-        if foundCommand or errCode == 1:
-            if errCode == 1:
-                print(checkCommandMessage)
-            samePlayer = True
-            noDraw = True
-            continue
-
-        errCode, messageOrFrCoords = c.coordsToNumberFormat(firstInput)
-        if errCode == 1:
-            print("Ошибка:", messageOrFrCoords)
-            samePlayer = True
-            noDraw = True
-            continue
-
-        errCode, message = c.checkCoordsValid(player, messageOrFrCoords[0], messageOrFrCoords[1])
-        if errCode == 1:
-            print("Ошибка:", message)
-            samePlayer = True
-            noDraw = True
-            continue
-
-        figure = c.board[messageOrFrCoords[0]][messageOrFrCoords[1]].figure
-        possibleMovements = c.getPossibleMovements(c.board, figure, player, messageOrFrCoords[0], messageOrFrCoords[1])
-
-        if len(possibleMovements) == 0:
-            print('Нет ходов!')
-            samePlayer = True
-            noDraw = True
-            continue
-
-        print('Возможные ходы (' + chess.figureNames[figure.lower()] + '):')
-        c.drawBoard(options=possibleMovements, player=player)
-
+    try:
         while True:
-            errCode, messageOrToCoords = c.coordsToNumberFormat(input('Конечная точка: '))
-            if errCode == 1:
-                print("Ошибка:", messageOrToCoords)
+            if not samePlayer:
+                player += 1
+            if player >= 3:
+                player = 1
+            samePlayer = False
+
+            if not noDraw:
+                c.drawBoard()
+                dangered = c.findAllCellsInDanger(c.board, player)
+                # print(dangered)
+                if len(dangered) != 0:
+                    print('Фигуры под ударом:')
+                    for d in dangered:
+                        print(str(d[0]) + " " + str(d[1]) + " (" + c.board[d[0]][d[1]].figure + ")")
+            noDraw = False
+
+            firstInput = input('Ход №' + str(c.currentMoveNumber) + ', игрок ' + str(player) + ':\nИсходная точка: ')
+            foundCommand, errCode, checkCommandMessage = checkCommand(firstInput, player)
+            # print(foundCommand, errCode, checkCommandMessage)
+            if foundCommand or errCode == 1:
+                if errCode == 1:
+                    print(checkCommandMessage)
+                samePlayer = True
+                noDraw = True
                 continue
 
-            errCode, movementMessage = c.performMovement(player=player, dFr=messageOrFrCoords[0], lFr=messageOrFrCoords[1], dTo=messageOrToCoords[0], lTo=messageOrToCoords[1])
+            errCode, messageOrFrCoords = c.coordsToNumberFormat(firstInput)
             if errCode == 1:
-                print("Ошибка:", movementMessage)
+                print("Ошибка:", messageOrFrCoords)
+                samePlayer = True
+                noDraw = True
                 continue
-            elif errCode == 0:
-                print()
-                print('Ход игрока ' + str(player) + ": " + movementMessage)
-                print()
 
-            break
+            errCode, message = c.checkCoordsValid(player, messageOrFrCoords[0], messageOrFrCoords[1])
+            if errCode == 1:
+                print("Ошибка:", message)
+                samePlayer = True
+                noDraw = True
+                continue
+
+            figure = c.board[messageOrFrCoords[0]][messageOrFrCoords[1]].figure
+            possibleMovements = c.getPossibleMovements(c.board, figure, player, messageOrFrCoords[0], messageOrFrCoords[1])
+
+            if len(possibleMovements) == 0:
+                print('Нет ходов!')
+                samePlayer = True
+                noDraw = True
+                continue
+
+            print('Возможные ходы (' + chess.figureNames[figure.lower()] + '):')
+            c.drawBoard(options=possibleMovements, player=player)
+
+            while True:
+                secondInput = input('Конечная точка: ')
+                if secondInput.strip() == '':
+                    samePlayer = True
+                    noDraw = True
+                    print('Принят запрос на повторный ввод исходной точки')
+                    break
+
+                errCode, messageOrToCoords = c.coordsToNumberFormat(secondInput)
+                if errCode == 1:
+                    print("Ошибка:", messageOrToCoords)
+                    continue
+
+                errCode, movementMessage = c.performMovement(player=player, dFr=messageOrFrCoords[0], lFr=messageOrFrCoords[1], dTo=messageOrToCoords[0], lTo=messageOrToCoords[1])
+                if errCode == 1:
+                    print("Ошибка:", movementMessage)
+                    continue
+                elif errCode == 0:
+                    print()
+                    print('Ход игрока ' + str(player) + ": " + movementMessage)
+                    print()
+
+                break
+    except KeyboardInterrupt:
+        pass

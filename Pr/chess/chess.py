@@ -93,6 +93,14 @@ class ChessGame:
         self.board[0][4].figure = 'k'  # король
         self.board[7][4].figure = 'K'
 
+
+        # self.board[4][0].figure = 'P'  # tests
+        # self.board[4][0].player = 1
+        # self.board[3][0].figure = 'p'
+        # self.board[3][0].player = 2
+        # self.board[3][1].figure = 'p'
+        # self.board[3][1].player = 2
+
     def init(self):
         self._initBoard()
         self._initFigures()
@@ -164,24 +172,26 @@ class ChessGame:
         movements = []
         match figure.lower():
             case 'p':
-                movements.append((d + (-1 if player == 1 else 1), l))
-                if player == 1 and d == 6:
+                if board[d + (-1 if player == 1 else 1)][l].figure == '':
+                    movements.append((d + (-1 if player == 1 else 1), l))
+
+                if player == 1 and d == 6 and board[d-2][l].figure == '':
                     movements.append((d - 2, l))
-                elif player == 2 and d == 1:
+                elif player == 2 and d == 1 and board[d+2][l].figure == '':
                     movements.append((d + 2, l))
-                if 0 < l < 7:
-                    if player == 1:
-                        if d > 0:
-                            if board[d-1][l-1].figure != '' and board[d-1][l-1].player != player:
-                                movements.append((d - 1, l - 1))
-                            if board[d-1][l+1].figure != '' and board[d-1][l+1].player != player:
-                                movements.append((d - 1, l + 1))
-                    elif player == 2:
-                        if d < 7:
-                            if board[d+1][l-1].figure != '' and board[d+1][l-1].player != player:
-                                movements.append((d + 1, l - 1))
-                            if board[d+1][l+1].figure != '' and board[d+1][l+1].player != player:
-                                movements.append((d + 1, l + 1))
+
+                if player == 1:
+                    if d > 0:
+                        if 0 < l and board[d-1][l-1].figure != '' and board[d-1][l-1].player != player:
+                            movements.append((d - 1, l - 1))
+                        if l < 7 and board[d-1][l+1].figure != '' and board[d-1][l+1].player != player:
+                            movements.append((d - 1, l + 1))
+                elif player == 2:
+                    if d < 7:
+                        if 0 < l and board[d+1][l-1].figure != '' and board[d+1][l-1].player != player:
+                            movements.append((d + 1, l - 1))
+                        if l < 7 and board[d+1][l+1].figure != '' and board[d+1][l+1].player != player:
+                            movements.append((d + 1, l + 1))
             case 'r':
                 self.addRMovements(movements, player, d, l)
             case 'b':
